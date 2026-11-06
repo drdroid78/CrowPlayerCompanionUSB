@@ -1,5 +1,6 @@
 package ru.drdroid.crowplayer.companion
 
+import android.content.ComponentName
 import android.graphics.Bitmap
 import android.media.Rating
 import android.media.session.MediaController
@@ -46,7 +47,7 @@ class MediaBridge : NotificationListenerService() {
             val md = c.metadata ?: return
             val current = md.getRating(android.media.MediaMetadata.METADATA_KEY_USER_RATING)?.hasHeart() == true
             // Явно шлём и true, и false — снятие лайка передаётся сердечным рейтингом false.
-            c.transportControls.sendRatingEvent(Rating.newHeartRating(!current))
+            c.transportControls.setRating(Rating.newHeartRating(!current))
         }
 
         private fun isNightNow(): Boolean {
@@ -67,7 +68,9 @@ class MediaBridge : NotificationListenerService() {
 
     private fun attachSessions() {
         val m = mgr ?: return
-        val sessions = runCatching { m.activeSessions(listOf()) }.getOrNull() ?: return
+        val sessions = runCatching {
+            m.getActiveSessions(ComponentName(this, MediaBridge::class.java))
+        }.getOrNull() ?: return
         val c = sessions.firstOrNull { s ->
             s.playbackState?.state in listOf(PlaybackState.STATE_PLAYING, PlaybackState.STATE_PAUSED)
         } ?: sessions.firstOrNull() ?: return

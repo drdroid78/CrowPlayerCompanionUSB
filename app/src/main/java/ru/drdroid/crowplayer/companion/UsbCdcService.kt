@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -15,7 +16,6 @@ import android.hardware.usb.UsbEndpoint
 import android.hardware.usb.UsbInterface
 import android.hardware.usb.UsbManager
 import android.os.IBinder
-import android.os.PendingIntent
 import android.util.Log
 import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.concurrent.thread
@@ -65,9 +65,11 @@ class UsbCdcService : Service() {
         }
     }
 
-    private fun findCdc(dev: UsbDevice): UsbInterface? =
-        dev.interfaces.firstOrNull { it.interfaceClass == UsbConstants.USB_CLASS_CDC }
-            ?: dev.interfaces.firstOrNull { it.interfaceClass == UsbConstants.USB_CLASS_COMM }
+    private fun findCdc(dev: UsbDevice): UsbInterface? {
+        val interfaces = (0 until dev.interfaceCount).map { dev.getInterface(it) }
+        return interfaces.firstOrNull { it.interfaceClass == UsbConstants.USB_CLASS_CDC_DATA }
+            ?: interfaces.firstOrNull { it.interfaceClass == UsbConstants.USB_CLASS_COMM }
+    }
 
     private val usbReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
@@ -88,7 +90,8 @@ class UsbCdcService : Service() {
         val iface = findCdc(dev) ?: return
         val conn = (getSystemService(USB_SERVICE) as UsbManager).openDevice(dev) ?: return
         conn.claimInterface(iface, true)
-        for (ep in iface.endpoints) {
+        for (index in 0 until iface.endpointCount) {
+            val ep = iface.getEndpoint(index)
             if (ep.type != UsbConstants.USB_ENDPOINT_XFER_BULK) continue
             if (ep.direction == UsbConstants.USB_DIR_IN) epIn = ep else epOut = ep
         }
@@ -118,7 +121,11 @@ class UsbCdcService : Service() {
 
     private fun writerLoop() {
         while (ready) {
-            val pkt = outQueue.poll() ?: run { Thread.sleep(5); continue }
+            val pkt = outQueue.poll()
+            if (pkt == null) {
+                Thread.sleep(5)
+                continue
+            }
             var off = 0
             while (off < pkt.size) {
                 val n = connection?.bulkTransfer(epOut, pkt, off, minOf(4096, pkt.size - off), 1000) ?: -1
