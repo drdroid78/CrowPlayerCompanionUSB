@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ESP32-S3 CDC: vendor-id 0x303A (Espressif); при другом VID поправьте -->
+    <usb-device vendor-id="12342" />
+    <usb-device class="2" />
+</resources>

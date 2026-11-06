@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">CrowPlayer Companion</string>
+    <string name="allow_notifications">Разрешить доступ к уведомлениям →</string>
+    <string name="auto_night">Авто-ночь 22:00–07:00</string>
+    <string name="night_manual">Ночной режим вручную</string>
+    <string name="screen_brightness">Яркость экрана</string>
+    <string name="led_brightness">Яркость NeoPixel</string>
+    <string name="status_waiting">Подключите панель по USB…</string>
+</resources>
